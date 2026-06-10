@@ -1,0 +1,51 @@
+location,skill,count
+Greater London,python,70
+Greater London,sql,60
+Greater London,data analysis,59
+Greater London,communication,53
+Greater London,data visualization,37
+Greater London,communication skills,33
+Greater London,teamwork,31
+Greater London,project management,29
+Greater London,attention to detail,29
+Greater London,problem solving,26
+Austin,sql,74
+Austin,python,67
+Austin,machine learning,49
+Austin,communication,41
+Austin,data visualization,38
+Austin,data science,38
+Austin,data analysis,35
+Austin,problem solving,33
+Austin,computer science,30
+Austin,tableau,30
+Garland,python,72
+Garland,sql,61
+Garland,machine learning,44
+Garland,data analysis,35
+Garland,java,32
+Garland,aws,31
+Garland,spark,30
+Garland,data visualization,27
+Garland,data engineering,26
+Garland,data modeling,25
+Santa Clara,python,60
+Santa Clara,sql,53
+Santa Clara,machine learning,41
+Santa Clara,data analysis,36
+Santa Clara,data visualization,32
+Santa Clara,communication skills,27
+Santa Clara,tableau,26
+Santa Clara,communication,23
+Santa Clara,data science,23
+Santa Clara,java,19
+Baytown,sql,70
+Baytown,python,58
+Baytown,data analysis,37
+Baytown,data visualization,37
+Baytown,data modeling,29
+Baytown,power bi,26
+Baytown,communication,25
+Baytown,data management,24
+Baytown,tableau,21
+Baytown,machine learning,21

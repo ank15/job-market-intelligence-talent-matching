@@ -1,145 +1,168 @@
-Overview
+# Job Market Intelligence & Talent Matching
 
-This project is an end-to-end machine learning system designed to transform raw job market data into actionable intelligence and intelligent talent matching insights.
+An end-to-end machine learning system that transforms raw job-market data into
+actionable market intelligence and an explainable talent-matching score.
 
-The system analyzes large-scale job postings to:
-Identify in-demand skills
-Analyze salary trends across industries and locations
-Predict salary ranges using regression models
-Compute job–candidate fit scores using NLP techniques
+The system analyzes ~12,000 real job postings to:
 
-The project is structured using a modular ML pipeline with data validation, feature engineering, data visualization, model evaluation, and deployment readiness in mind.
+- Identify in-demand skills across the market
+- Analyze skill demand by location and hiring trends by seniority / work type
+- Compute a job–candidate fit score using NLP (TF-IDF + cosine similarity)
+- Highlight a candidate's skill gaps for a given role
+
+It is structured as a modular ML pipeline (data validation, preprocessing,
+feature engineering, analytics, and a Streamlit app) with reproducibility in mind.
 
 ---
-Business Problem
+
+## Business problem
 
 Recruiters and job seekers often lack data-driven visibility into:
-Which skills are currently in demand
-How salaries vary across roles and locations
-How well a candidate matches a specific job
-This system bridges that gap by:
-Converting unstructured job data into structured market intelligence
-Providing a quantitative talent matching score
-Supporting data-driven hiring and upskilling decisions
 
+- Which skills are currently in demand
+- Which skills are concentrated in which locations
+- How well a candidate matches a specific job, and what they're missing
 
-System Architecture:
+This system converts unstructured job data into structured market intelligence
+and a quantitative, **explainable** talent-matching score.
 
-Raw Data → Data Validation → Preprocessing → Feature Engineering →
-→ Market Intelligence Analytics
-→ Salary Prediction Model
-→ NLP Talent Matching Engine
-→ Streamlit Dashboard
+---
 
+## System architecture
 
+```
+Raw Data → Validation → Preprocessing → Feature Engineering →
+   ├── Market Intelligence Analytics   (src/analytics)
+   └── NLP Talent Matching Engine      (src/app) → Streamlit Dashboard
+```
 
-Module 1: Job Market Intelligence
-Key Insights Generated:
-* Top in-demand skills
-* Skill demand by location
-* Salary distribution analysis
-* Industry-level hiring trends
-Techniques Used:
-* Exploratory Data Analysis (EDA)
-* Grouped statistical aggregation
-* Visualization
-* Outlier handling
-* Missing value analysis
+---
 
-Module 2: Salary Prediction Model
-Objective:
-Predict salary range based on job features.
-Features:
-* Skills count
-* Job category
-* Location encoding
-* Experience level
-Models:
-* Linear Regression (Baseline)
-* Random Forest Regressor
-Evaluation Metrics:
-* RMSE
-* MAE
-* R² Score
-* Cross-validation
-Additional:
-* Feature importance analysis
-* Residual error inspection
+## Modules
 
-Module 3: NLP-Based Talent Matching Engine
-Objective:
-Compute similarity between job descriptions and candidate resumes.
+### Module 1 — Job Market Intelligence ✅ implemented
+
+`src/analytics/market_intelligence.py`
+
+- **Top in-demand skills** across all postings
+- **Skill demand by location** (top skills within the busiest cities)
+- **Hiring trends** by `job_level` (e.g. Mid-senior vs. Associate) and
+  `job_type` (Onsite / Remote / Hybrid)
+- Generates CSV reports under `artifacts/reports/`
+
+Techniques: exploratory data analysis, grouped aggregation, rule-based skill
+cleaning, and missing-value handling.
+
+> Note: the current dataset has **no salary field**, so salary-distribution
+> analysis is intentionally out of scope (see Roadmap).
+
+### Module 2 — NLP Talent Matching Engine ✅ implemented
+
+`src/app/app.py`, `src/utils/preprocessing.py`
+
+Computes similarity between a candidate's skills and job descriptions.
+
 Pipeline:
-* Text cleaning
-* Stopword removal
-* TF-IDF vectorization
-* Cosine similarity scoring
-Output:
-* Match Score (0–100)
-* Skill overlap
-* Missing skill suggestions
-This module provides a practical and explainable job-fit scoring system.
 
-Testing & Validation
-The project includes:
-* Data validation checks
-* Input schema verification
-* Unit tests for preprocessing functions
-* Model evaluation consistency checks
-This ensures reproducibility and reliability.
+1. Clean skills and job summaries (shared functions in `src/utils/preprocessing.py`,
+   so the app mirrors the notebook exactly — no train/serve skew)
+2. **TF-IDF** vectorization of job summaries (`max_features=5000`, English stop words),
+   persisted with `joblib` so it isn't refit on every run
+3. **Cosine similarity** between the resume vector and every job
+4. Return the top 5 matches with a **match score (0–100)**, matched skills, and
+   missing skills
 
- Tech Stack
-* Python
-* pandas
-* numpy
-* scikit-learn
-* matplotlib / seaborn
-* nltk / spaCy
-* Streamlit
-* pytest
+This provides a practical and explainable job-fit scoring system.
 
-Example Use Case
-A job seeker uploads their resume.
-The system:
-* Extracts key skills
-* Compares against thousands of job descriptions
-* Computes a similarity score
-* Highlights skill gaps
-* Suggests areas for upskilling
+---
 
+## Testing & validation
 
+- Unit tests for preprocessing functions (`clean_skills`, `clean_text`, `partial_match`)
+- Unit tests for the market-intelligence analytics
+- Run with `pytest` (16 tests):
 
+```bash
+pytest -q
+```
 
+---
 
-How to run locally
+## Tech stack
 
-Example outputs
+Python · pandas · numpy · scikit-learn (TF-IDF, cosine similarity) ·
+joblib (model persistence) · matplotlib / seaborn (EDA) · Streamlit (UI) · pytest
 
-## Project Structure
+---
 
-The repository is organized as follows:
+## How to run locally
+
+```bash
+# 1. Create and activate a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Generate market-intelligence reports (writes to artifacts/reports/)
+python -m src.analytics.market_intelligence
+
+# 4. Launch the talent-matching app
+streamlit run src/app/app.py
+
+# 5. Run the tests
+pytest -q
+```
+
+> **Data:** the raw/processed CSVs (~120 MB) are not committed to git. Place the
+> source datasets under `data/raw/` and the merged `final_jobs.csv` under
+> `data/processed/`. The merge/cleaning steps are in
+> `notebooks/01_data_exploration.ipynb`.
+
+---
+
+## Example use case
+
+A job seeker enters their skills. The system:
+
+1. Vectorizes the skills in the same TF-IDF space as the job corpus
+2. Compares against thousands of job descriptions via cosine similarity
+3. Returns the top-matching jobs with a similarity score
+4. Highlights matched vs. missing skills (skill-gap analysis)
+
+---
+
+## Project structure
 
 ```
-ai-job-market-intelligence/
+job-market-intelligence-talent-matching/
 ├── data/
-│   ├── raw/            # source datasets (read-only)
-│   └── processed/      # cleaned and feature-ready data
-├── notebooks/          # exploratory and modeling notebooks
-│   ├── 01_data_exploration.ipynb
-│   ├── 02_feature_engineering.ipynb
-│   └── 03_model_experiments.ipynb
-├── src/                # python package modules
-│   ├── data/           # data ingestion and IO helpers
-│   ├── features/       # feature engineering code
-│   ├── models/         # training and evaluation logic
-│   ├── utils/          # utility functions
-│   └── app/            # application / deployment code (e.g. streamlit)
-├── tests/              # unit and integration tests
-├── artifacts/          # generated output and models
-│   ├── trained_models/
-│   └── reports/        # analysis figures and reports
-├── requirements.txt    # python dependencies
-└── README.md           # project overview and instructions
+│   ├── raw/            # source datasets (gitignored; structure kept via .gitkeep)
+│   └── processed/      # cleaned, feature-ready data (gitignored)
+├── notebooks/
+│   └── 01_data_exploration.ipynb   # data merge, cleaning, TF-IDF fitting
+├── src/
+│   ├── analytics/      # market intelligence analytics
+│   ├── utils/          # shared preprocessing helpers
+│   └── app/            # Streamlit talent-matching app
+├── tests/              # unit tests
+├── artifacts/
+│   ├── trained_models/ # persisted TF-IDF vectorizer (gitignored)
+│   └── reports/        # generated analytics CSVs
+├── requirements.txt
+└── README.md
 ```
 
-Feel free to add additional documentation or modify this layout as the project evolves.
+---
+
+## Roadmap
+
+- **Salary prediction model** — requires a dataset with a salary field
+  (the current data has none). Planned approach: Linear Regression baseline →
+  Random Forest, evaluated with RMSE / MAE / R² and feature-importance analysis.
+- **Semantic matching** — replace TF-IDF with sentence embeddings so "ML" ≈
+  "machine learning"; add an ANN index (FAISS) to scale beyond brute-force cosine.
+- **Stronger skill matching** — replace substring containment in `partial_match`
+  with token/fuzzy matching to avoid false positives.
+- **Resume upload + skill extraction** (NER) and a market-intelligence dashboard.
