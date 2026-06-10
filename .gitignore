@@ -1,0 +1,17 @@
+.DS_Store
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.ipynb_checkpoints/
+artifacts/trained_models/
+
+# Data files (large; not versioned) — keep folder structure only
+data/*
+!data/raw/
+!data/processed/
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
