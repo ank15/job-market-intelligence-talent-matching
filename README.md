@@ -53,9 +53,6 @@ Raw Data → Validation → Preprocessing → Feature Engineering →
 Techniques: exploratory data analysis, grouped aggregation, rule-based skill
 cleaning, and missing-value handling.
 
-> Note: the current dataset has **no salary field**, so salary-distribution
-> analysis is intentionally out of scope (see Roadmap).
-
 ### Module 2 — NLP Talent Matching Engine ✅ implemented
 
 `src/app/app.py`, `src/utils/preprocessing.py`
@@ -158,9 +155,6 @@ job-market-intelligence-talent-matching/
 
 ## Roadmap
 
-- **Salary prediction model** — requires a dataset with a salary field
-  (the current data has none). Planned approach: Linear Regression baseline →
-  Random Forest, evaluated with RMSE / MAE / R² and feature-importance analysis.
 - **Semantic matching** — replace TF-IDF with sentence embeddings so "ML" ≈
   "machine learning"; add an ANN index (FAISS) to scale beyond brute-force cosine.
 - **Stronger skill matching** — replace substring containment in `partial_match`
