@@ -1,4 +1,5 @@
 .DS_Store
+INTERVIEW_NOTES.md
 .venv/
 __pycache__/
 *.pyc
