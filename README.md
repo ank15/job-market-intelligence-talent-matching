@@ -140,6 +140,18 @@ pytest -q
 > `data/processed/`. The merge/cleaning steps are in
 > `notebooks/01_data_exploration.ipynb`.
 
+> **First run (semantic engine):** the first semantic search downloads the
+> `all-MiniLM-L6-v2` model (~80 MB) and embeds all ~12k job summaries once
+> (~1–2 min on CPU), caching the result to
+> `artifacts/trained_models/job_embeddings.npy`. Every run after that loads the
+> cache instantly.
+>
+> **Why cache the embeddings?** Encoding the whole corpus is the expensive part,
+> and the corpus doesn't change between queries — so we do it once and persist it.
+> At request time the model then only has to embed the user's short query and take
+> a dot product against the cached matrix, which keeps each search fast. (The cache
+> is gitignored and rebuilt automatically if the row count changes.)
+
 ---
 
 ## Example use case
