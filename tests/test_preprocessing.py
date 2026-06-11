@@ -35,9 +35,21 @@ class TestPartialMatch:
     def test_exact_overlap(self):
         assert partial_match({"python"}, {"python", "sql"}) == {"python"}
 
-    def test_substring_match(self):
-        # "react" is contained in "react.js" style entries.
+    def test_token_subset_match(self):
+        # All tokens of the skill appear as whole tokens in the job skill.
+        assert partial_match({"node"}, {"node.js"}) == {"node"}
+        assert partial_match({"machine learning"}, {"machine learning engineer"}) == {
+            "machine learning"
+        }
+
+    def test_fuzzy_match_near_spelling(self):
+        # "react" ~ "reactjs" is close enough to count as a match.
         assert partial_match({"react"}, {"reactjs"}) == {"react"}
 
     def test_no_match(self):
         assert partial_match({"golang"}, {"python", "sql"}) == set()
+
+    def test_no_substring_false_positives(self):
+        # The old substring logic wrongly matched these; the new logic must not.
+        assert partial_match({"java"}, {"javascript"}) == set()
+        assert partial_match({"go"}, {"google"}) == set()

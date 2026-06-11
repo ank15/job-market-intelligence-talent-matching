@@ -7,7 +7,8 @@ The system analyzes ~12,000 real job postings to:
 
 - Identify in-demand skills across the market
 - Analyze skill demand by location and hiring trends by seniority / work type
-- Compute a job–candidate fit score using NLP (TF-IDF + cosine similarity)
+- Compute a job–candidate fit score using NLP — semantic sentence-transformer
+  embeddings, with a TF-IDF baseline to compare against
 - Highlight a candidate's skill gaps for a given role
 
 It is structured as a modular ML pipeline (data validation, preprocessing,
@@ -24,7 +25,7 @@ Recruiters and job seekers often lack data-driven visibility into:
 - How well a candidate matches a specific job, and what they're missing
 
 This system converts unstructured job data into structured market intelligence
-and a quantitative, **explainable** talent-matching score.
+and a quantitative, explainable talent-matching score.
 
 ---
 
@@ -32,15 +33,15 @@ and a quantitative, **explainable** talent-matching score.
 
 ```
 Raw Data → Validation → Preprocessing → Feature Engineering →
-   ├── Market Intelligence Analytics   (src/analytics)
-   └── NLP Talent Matching Engine      (src/app) → Streamlit Dashboard
+   ├── Market Intelligence Analytics      (src/analytics)
+   └── Semantic Talent Matching Engine    (src/matching + src/app) → Streamlit Dashboard
 ```
 
 ---
 
 ## Modules
 
-### Module 1 — Job Market Intelligence ✅ implemented
+### Module 1 — Job Market Intelligence
 
 `src/analytics/market_intelligence.py`
 
@@ -53,23 +54,43 @@ Raw Data → Validation → Preprocessing → Feature Engineering →
 Techniques: exploratory data analysis, grouped aggregation, rule-based skill
 cleaning, and missing-value handling.
 
-### Module 2 — NLP Talent Matching Engine ✅ implemented
+### Module 2 — Talent Matching Engine
 
-`src/app/app.py`, `src/utils/preprocessing.py`
+`src/app/app.py`, `src/matching/semantic_matcher.py`, `src/utils/preprocessing.py`
 
-Computes similarity between a candidate's skills and job descriptions.
+Computes similarity between a candidate's skills and job descriptions, with a
+**switchable engine** so you can compare a semantic model against a lexical
+baseline:
+
+| Engine | Technique | Strength |
+|--------|-----------|----------|
+| **Semantic (default)** | sentence-transformer embeddings (`all-MiniLM-L6-v2`) + cosine | Matches *meaning* — "ML" ≈ "machine learning" even with no shared words |
+| **TF-IDF** | TF-IDF (`max_features=5000`) + cosine | Fast lexical baseline; only matches overlapping words |
+
+Why it matters: for a resume reading *"ML and neural networks"*, the semantic
+engine surfaces machine-learning / deep-learning jobs (~35% similarity) while
+TF-IDF scores them all **0%** — it can't tell that "ML" means "machine learning".
+
+**Which is best?** **Semantic is the default** — real resumes are full of synonyms and
+abbreviations a word-only model misses, so it gives better matches on typical queries.
+TF-IDF stays available as a fast, fully-interpretable baseline (and is occasionally more
+robust on very short, exact terms). The honest answer is to pick per query type — and to
+evaluate both on labeled data (precision@k) rather than assume a universal winner.
 
 Pipeline:
 
-1. Clean skills and job summaries (shared functions in `src/utils/preprocessing.py`,
+1. Clean skills and summaries (shared functions in `src/utils/preprocessing.py`,
    so the app mirrors the notebook exactly — no train/serve skew)
-2. **TF-IDF** vectorization of job summaries (`max_features=5000`, English stop words),
-   persisted with `joblib` so it isn't refit on every run
-3. **Cosine similarity** between the resume vector and every job
-4. Return the top 5 matches with a **match score (0–100)**, matched skills, and
-   missing skills
+2. Embed the job corpus **once** and persist it (`.npy` for embeddings,
+   `joblib` for the TF-IDF vectorizer), so only the short query is processed
+   per request
+3. **Cosine similarity** between the resume vector and every job, returning the
+   top 5 matches with a **match score (0–100)**
+4. **Skill-level gap analysis** via `partial_match` — exact, token-subset, and
+   fuzzy (`difflib`) matching, so `node` matches `node.js` and `react` ~
+   `reactjs`, while avoiding substring false positives like `java` → `javascript`
 
-This provides a practical and explainable job-fit scoring system.
+This provides a practical, explainable, and semantically-aware job-fit system.
 
 ---
 
@@ -77,7 +98,8 @@ This provides a practical and explainable job-fit scoring system.
 
 - Unit tests for preprocessing functions (`clean_skills`, `clean_text`, `partial_match`)
 - Unit tests for the market-intelligence analytics
-- Run with `pytest` (16 tests):
+- Unit tests for the semantic matcher's ranking & cache logic (no model download)
+- Run with `pytest` (24 tests):
 
 ```bash
 pytest -q
@@ -87,8 +109,9 @@ pytest -q
 
 ## Tech stack
 
-Python · pandas · numpy · scikit-learn (TF-IDF, cosine similarity) ·
-joblib (model persistence) · matplotlib / seaborn (EDA) · Streamlit (UI) · pytest
+Python · pandas · numpy · **sentence-transformers** (`all-MiniLM-L6-v2` embeddings) ·
+scikit-learn (TF-IDF, cosine similarity) · joblib / numpy (model & embedding
+persistence) · matplotlib / seaborn (EDA) · Streamlit (UI) · pytest
 
 ---
 
@@ -123,7 +146,8 @@ pytest -q
 
 A job seeker enters their skills. The system:
 
-1. Vectorizes the skills in the same TF-IDF space as the job corpus
+1. Encodes the skills with the selected engine — semantic embeddings (default) or
+   TF-IDF — into the same vector space as the job corpus
 2. Compares against thousands of job descriptions via cosine similarity
 3. Returns the top-matching jobs with a similarity score
 4. Highlights matched vs. missing skills (skill-gap analysis)
@@ -141,11 +165,12 @@ job-market-intelligence-talent-matching/
 │   └── 01_data_exploration.ipynb   # data merge, cleaning, TF-IDF fitting
 ├── src/
 │   ├── analytics/      # market intelligence analytics
+│   ├── matching/       # semantic (embedding) matching engine
 │   ├── utils/          # shared preprocessing helpers
 │   └── app/            # Streamlit talent-matching app
 ├── tests/              # unit tests
 ├── artifacts/
-│   ├── trained_models/ # persisted TF-IDF vectorizer (gitignored)
+│   ├── trained_models/ # persisted TF-IDF vectorizer + job embeddings (gitignored)
 │   └── reports/        # generated analytics CSVs
 ├── requirements.txt
 └── README.md
@@ -155,8 +180,5 @@ job-market-intelligence-talent-matching/
 
 ## Roadmap
 
-- **Semantic matching** — replace TF-IDF with sentence embeddings so "ML" ≈
-  "machine learning"; add an ANN index (FAISS) to scale beyond brute-force cosine.
-- **Stronger skill matching** — replace substring containment in `partial_match`
-  with token/fuzzy matching to avoid false positives.
-- **Resume upload + skill extraction** (NER) and a market-intelligence dashboard.
+- **Scale the semantic search** — add an ANN index.
+- **Resume upload + skill extraction** and a market-intelligence dashboard.
